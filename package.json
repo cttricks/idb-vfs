@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "build": "tsup src/index.ts --format esm,cjs && tsc --project tsconfig.json --emitDeclarationOnly --declaration --declarationMap false --outDir dist",
     "dev": "tsup src/index.ts --watch"
   },
   "keywords": [
