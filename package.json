@@ -1,0 +1,27 @@
+{
+  "name": "idb-vfs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "dev": "tsup src/index.ts --watch"
+  },
+  "keywords": [
+    "idb",
+    "vfs",
+    "virtual file system",
+    "indexeddb",
+    "browser storage"
+  ],
+  "author": "Tanish Raj <help.cttricks@gmail.com>",
+  "license": "MIT",
+  "description": "A virtual file system implementation using IndexedDB",
+  "dependencies": {
+    "dexie": "^4.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  }
+}
