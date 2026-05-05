@@ -1,39 +1,21 @@
 import Dexie, { type Table } from "dexie";
+import type {
+  FileVersion,
+  HistoryEntry,
+  Node as VfsNode,
+  SessionMeta,
+} from "../types";
 
 const DATABASE_NAME = "idb-vfs";
 const DATABASE_VERSION = 1;
 
-export interface NodeRecord {
-  id: string;
-  sessionId: string;
-  parentId: string | null;
-  name: string;
-  kind: "file" | "folder";
-  createdAt: number;
-  updatedAt: number;
-  versionHash?: string;
-}
+export type NodeRecord = VfsNode;
 
-export interface FileVersionRecord {
-  hash: string;
-  fileId: string;
-  content: string;
-  createdAt: number;
-}
+export type FileVersionRecord = FileVersion;
 
-export interface HistoryRecord {
-  id?: number;
-  sessionId: string;
-  operation: string;
-  timestamp: number;
-  payload: unknown;
-}
+export type HistoryRecord = HistoryEntry;
 
-export interface SessionMetaRecord {
-  sessionId: string;
-  createdAt: number;
-  updatedAt: number;
-}
+export type SessionMetaRecord = SessionMeta;
 
 export class IdbVfsDatabase extends Dexie {
   nodes!: Table<NodeRecord, NodeRecord["id"]>;
