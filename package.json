@@ -1,7 +1,24 @@
 {
   "name": "idb-vfs",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "A versioned virtual file system for the browser built on IndexedDB and Dexie.",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs && tsc --project tsconfig.json --emitDeclarationOnly --declaration --declarationMap false --outDir dist",
     "dev": "tsup src/index.ts --watch"
@@ -14,8 +31,6 @@
     "browser storage"
   ],
   "author": "Tanish Raj <help.cttricks@gmail.com>",
-  "license": "MIT",
-  "description": "A virtual file system implementation using IndexedDB",
   "dependencies": {
     "dexie": "^4.4.2"
   },
