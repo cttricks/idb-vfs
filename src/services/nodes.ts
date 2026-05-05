@@ -1,6 +1,6 @@
 import { db, type IdbVfsDatabase, type NodeRecord } from "../core";
 import { createSession } from "../session";
-import type { FolderNode } from "../types";
+import type { FolderNode, Node as VfsNode } from "../types";
 import { createId, getPathSegments, parseAbsolutePath } from "../utils";
 import {
   DuplicateNodeNameError,
@@ -13,6 +13,7 @@ import {
   SessionMismatchError,
   TreeCycleError,
 } from "./errors";
+import { recordHistoryEntry } from "./history-store";
 
 type ChildLookupKey = [sessionId: string, parentId: string | null];
 
@@ -211,6 +212,14 @@ export async function createFolder(
     };
 
     await database.nodes.add(folderNode);
+    await recordHistoryEntry(database, {
+      sessionId: folderNode.sessionId,
+      timestamp,
+      type: "FOLDER_CREATED",
+      payload: {
+        node: folderNode,
+      },
+    });
 
     return folderNode;
   });
@@ -261,6 +270,17 @@ export async function rename(
     };
 
     await database.nodes.put(updatedNode);
+    await recordHistoryEntry(database, {
+      sessionId: node.sessionId,
+      timestamp: updatedNode.updatedAt,
+      type: "NODE_RENAMED",
+      payload: {
+        nodeId: node.id,
+        nodeKind: node.kind,
+        previousName: node.name,
+        nextName: normalizedName,
+      },
+    });
 
     return updatedNode;
   });
@@ -321,6 +341,17 @@ export async function move(
     };
 
     await database.nodes.put(updatedNode);
+    await recordHistoryEntry(database, {
+      sessionId: node.sessionId,
+      timestamp: updatedNode.updatedAt,
+      type: "NODE_MOVED",
+      payload: {
+        nodeId: node.id,
+        nodeKind: node.kind,
+        previousParentId: node.parentId,
+        nextParentId: targetFolder.id,
+      },
+    });
 
     return updatedNode;
   });
@@ -361,10 +392,24 @@ export async function deleteFolder(
     }
 
     const nodeIds = await collectFolderSubtreeIds(database, folderNode);
+    const deletedNodes: VfsNode[] = [];
+
+    for (const nodeId of nodeIds) {
+      deletedNodes.push(await getNode(database, nodeId));
+    }
 
     for (const nodeId of nodeIds) {
       await database.nodes.delete(nodeId);
     }
+
+    await recordHistoryEntry(database, {
+      sessionId: folderNode.sessionId,
+      timestamp: Date.now(),
+      type: "FOLDER_DELETED",
+      payload: {
+        nodes: deletedNodes,
+      },
+    });
 
     return {
       deletedNodeIds: nodeIds,

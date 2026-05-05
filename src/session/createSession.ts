@@ -59,6 +59,7 @@ export async function createSession(
       const session: SessionMeta = {
         sessionId: normalizedSessionId,
         rootNodeId: rootNode.id,
+        historyPointer: null,
         createdAt: timestamp,
         updatedAt: timestamp,
       };

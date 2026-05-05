@@ -39,10 +39,7 @@ interface HistoryEntryBase<TType extends string, TPayload> {
 export type FileCreatedOperation = HistoryEntryBase<
   "FILE_CREATED",
   {
-    fileId: string;
-    parentId: string | null;
-    name: string;
-    versionHash: string | null;
+    node: FileNode;
   }
 >;
 
@@ -58,10 +55,7 @@ export type FileUpdatedOperation = HistoryEntryBase<
 export type FileDeletedOperation = HistoryEntryBase<
   "FILE_DELETED",
   {
-    fileId: string;
-    parentId: string | null;
-    name: string;
-    versionHash: string | null;
+    node: FileNode;
   }
 >;
 
@@ -77,18 +71,14 @@ export type FileRestoredOperation = HistoryEntryBase<
 export type FolderCreatedOperation = HistoryEntryBase<
   "FOLDER_CREATED",
   {
-    folderId: string;
-    parentId: string | null;
-    name: string;
+    node: FolderNode;
   }
 >;
 
 export type FolderDeletedOperation = HistoryEntryBase<
   "FOLDER_DELETED",
   {
-    folderId: string;
-    parentId: string | null;
-    name: string;
+    nodes: Node[];
   }
 >;
 
@@ -125,6 +115,7 @@ export type HistoryEntry =
 export interface SessionMeta {
   sessionId: string;
   rootNodeId: string | null;
+  historyPointer: number | null;
   createdAt: number;
   updatedAt: number;
 }

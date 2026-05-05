@@ -81,3 +81,10 @@ export class TreeCycleError extends FileServiceError {
     this.name = "TreeCycleError";
   }
 }
+
+export class SessionNotFoundError extends FileServiceError {
+  constructor(sessionId: string) {
+    super(`Session "${sessionId}" was not found.`);
+    this.name = "SessionNotFoundError";
+  }
+}

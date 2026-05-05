@@ -8,6 +8,7 @@ import {
   InvalidFilePathError,
   NotAFileError,
 } from "./errors";
+import { recordHistoryEntry } from "./history-store";
 import { findChildByName, getNode, resolveFolderPath } from "./nodes";
 
 async function getFileNode(
@@ -104,6 +105,14 @@ export async function createFile(
       };
 
       await database.nodes.add(fileNode);
+      await recordHistoryEntry(database, {
+        sessionId: fileNode.sessionId,
+        timestamp,
+        type: "FILE_CREATED",
+        payload: {
+          node: fileNode,
+        },
+      });
 
       return fileNode;
     },
@@ -163,6 +172,16 @@ export async function updateFile(
       };
 
       await database.nodes.put(updatedFileNode);
+      await recordHistoryEntry(database, {
+        sessionId: fileNode.sessionId,
+        timestamp,
+        type: "FILE_UPDATED",
+        payload: {
+          fileId,
+          previousVersionHash: fileNode.currentVersionHash,
+          nextVersionHash: version.hash,
+        },
+      });
 
       return updatedFileNode;
     },
