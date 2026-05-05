@@ -1,3 +1,4 @@
+import { emit } from "../events";
 import { db, type IdbVfsDatabase, type NodeRecord } from "../core";
 import { createSession } from "../session";
 import type { FileNode, FileVersion } from "../types";
@@ -65,7 +66,7 @@ export async function createFile(
 
   const { rootNode } = await createSession(sessionId, database);
 
-  return database.transaction(
+  const fileNode = await database.transaction(
     "rw",
     database.nodes,
     database.fileVersions,
@@ -117,6 +118,12 @@ export async function createFile(
       return fileNode;
     },
   );
+
+  emit("FILE_CREATED", {
+    file: fileNode,
+  });
+
+  return fileNode;
 }
 
 export async function readFile(
@@ -152,7 +159,7 @@ export async function updateFile(
   content: string,
   database: IdbVfsDatabase = db,
 ): Promise<FileNode> {
-  return database.transaction(
+  const result = await database.transaction(
     "rw",
     database.nodes,
     database.fileVersions,
@@ -162,7 +169,11 @@ export async function updateFile(
       const version = await ensureFileVersion(database, fileId, content, timestamp);
 
       if (fileNode.currentVersionHash === version.hash) {
-        return fileNode;
+        return {
+          file: fileNode,
+          previousVersionHash: fileNode.currentVersionHash,
+          changed: false,
+        };
       }
 
       const updatedFileNode: FileNode = {
@@ -183,9 +194,23 @@ export async function updateFile(
         },
       });
 
-      return updatedFileNode;
+      return {
+        file: updatedFileNode,
+        previousVersionHash: fileNode.currentVersionHash,
+        changed: true,
+      };
     },
   );
+
+  if (result.changed) {
+    emit("FILE_UPDATED", {
+      file: result.file,
+      previousVersionHash: result.previousVersionHash,
+      currentVersionHash: result.file.currentVersionHash,
+    });
+  }
+
+  return result.file;
 }
 
 export async function getFileVersion(

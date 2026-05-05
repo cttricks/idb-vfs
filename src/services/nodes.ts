@@ -1,3 +1,4 @@
+import { emit } from "../events";
 import { db, type IdbVfsDatabase, type NodeRecord } from "../core";
 import { createSession } from "../session";
 import type { FolderNode, Node as VfsNode } from "../types";
@@ -180,7 +181,7 @@ export async function createFolder(
 
   const { rootNode } = await createSession(sessionId, database);
 
-  return database.transaction("rw", database.nodes, async () => {
+  const folderNode = await database.transaction("rw", database.nodes, async () => {
     const parentFolder = await resolveFolderPath(
       database,
       rootNode.sessionId,
@@ -223,6 +224,12 @@ export async function createFolder(
 
     return folderNode;
   });
+
+  emit("FOLDER_CREATED", {
+    folder: folderNode,
+  });
+
+  return folderNode;
 }
 
 async function assertSiblingNameAvailable(
@@ -250,7 +257,7 @@ export async function rename(
 ): Promise<NodeRecord> {
   const normalizedName = normalizeNodeName(nextName);
 
-  return database.transaction("rw", database.nodes, async () => {
+  const result = await database.transaction("rw", database.nodes, async () => {
     const node = await getNode(database, nodeId);
 
     if (node.parentId === null) {
@@ -260,7 +267,11 @@ export async function rename(
     await assertSiblingNameAvailable(database, node, node.parentId, normalizedName);
 
     if (node.name === normalizedName) {
-      return node;
+      return {
+        node,
+        previousName: node.name,
+        changed: false,
+      };
     }
 
     const updatedNode: NodeRecord = {
@@ -282,8 +293,22 @@ export async function rename(
       },
     });
 
-    return updatedNode;
+    return {
+      node: updatedNode,
+      previousName: node.name,
+      changed: true,
+    };
   });
+
+  if (result.changed && result.node.kind === "file") {
+    emit("FILE_RENAMED", {
+      file: result.node,
+      previousName: result.previousName,
+      currentName: result.node.name,
+    });
+  }
+
+  return result.node;
 }
 
 async function isDescendantFolder(
@@ -310,7 +335,7 @@ export async function move(
   targetFolderId: string,
   database: IdbVfsDatabase = db,
 ): Promise<NodeRecord> {
-  return database.transaction("rw", database.nodes, async () => {
+  const result = await database.transaction("rw", database.nodes, async () => {
     const node = await getNode(database, nodeId);
     const targetFolder = await getFolderNode(database, targetFolderId);
 
@@ -331,7 +356,11 @@ export async function move(
     await assertSiblingNameAvailable(database, node, targetFolder.id, node.name);
 
     if (node.parentId === targetFolder.id) {
-      return node;
+      return {
+        node,
+        previousParentId: node.parentId,
+        changed: false,
+      };
     }
 
     const updatedNode: NodeRecord = {
@@ -353,8 +382,30 @@ export async function move(
       },
     });
 
-    return updatedNode;
+    return {
+      node: updatedNode,
+      previousParentId: node.parentId,
+      changed: true,
+    };
   });
+
+  if (result.changed) {
+    if (result.node.kind === "file") {
+      emit("FILE_MOVED", {
+        file: result.node,
+        previousParentId: result.previousParentId,
+        currentParentId: result.node.parentId,
+      });
+    } else {
+      emit("FOLDER_MOVED", {
+        folder: result.node,
+        previousParentId: result.previousParentId,
+        currentParentId: result.node.parentId,
+      });
+    }
+  }
+
+  return result.node;
 }
 
 async function collectFolderSubtreeIds(
@@ -384,7 +435,7 @@ export async function deleteFolder(
   folderId: string,
   database: IdbVfsDatabase = db,
 ): Promise<DeleteFolderResult> {
-  return database.transaction("rw", database.nodes, async () => {
+  const result = await database.transaction("rw", database.nodes, async () => {
     const folderNode = await getFolderNode(database, folderId);
 
     if (folderNode.parentId === null) {
@@ -412,7 +463,17 @@ export async function deleteFolder(
     });
 
     return {
+      folder: folderNode,
       deletedNodeIds: nodeIds,
     };
   });
+
+  emit("FOLDER_DELETED", {
+    folder: result.folder,
+    deletedNodeIds: result.deletedNodeIds,
+  });
+
+  return {
+    deletedNodeIds: result.deletedNodeIds,
+  };
 }

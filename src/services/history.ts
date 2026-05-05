@@ -1,3 +1,4 @@
+import { emit } from "../events";
 import { db, type IdbVfsDatabase } from "../core";
 import type { FileNode, FolderNode, HistoryEntry, Node as VfsNode } from "../types";
 import {
@@ -160,6 +161,169 @@ async function applyHistoryEntry(
   }
 }
 
+function emitHistoryMutation(entry: HistoryEntry, direction: "undo" | "redo"): void {
+  switch (entry.type) {
+    case "FILE_CREATED": {
+      if (direction === "undo") {
+        emit("FILE_DELETED", {
+          file: entry.payload.node,
+        });
+      } else {
+        emit("FILE_CREATED", {
+          file: entry.payload.node,
+        });
+      }
+      return;
+    }
+    case "FILE_UPDATED": {
+      const currentVersionHash =
+        direction === "undo"
+          ? entry.payload.previousVersionHash
+          : entry.payload.nextVersionHash;
+      const previousVersionHash =
+        direction === "undo"
+          ? entry.payload.nextVersionHash
+          : entry.payload.previousVersionHash;
+
+      emit("FILE_UPDATED", {
+        file: {
+          id: entry.payload.fileId,
+          kind: "file",
+          currentVersionHash,
+        } as FileNode,
+        previousVersionHash,
+        currentVersionHash,
+      });
+      return;
+    }
+    case "FILE_DELETED": {
+      if (direction === "undo") {
+        emit("FILE_CREATED", {
+          file: entry.payload.node,
+        });
+      } else {
+        emit("FILE_DELETED", {
+          file: entry.payload.node,
+        });
+      }
+      return;
+    }
+    case "FILE_RESTORED": {
+      const currentVersionHash =
+        direction === "undo"
+          ? entry.payload.previousVersionHash
+          : entry.payload.restoredVersionHash;
+      const previousVersionHash =
+        direction === "undo"
+          ? entry.payload.restoredVersionHash
+          : entry.payload.previousVersionHash;
+
+      emit("FILE_UPDATED", {
+        file: {
+          id: entry.payload.fileId,
+          kind: "file",
+          currentVersionHash,
+        } as FileNode,
+        previousVersionHash,
+        currentVersionHash,
+      });
+      return;
+    }
+    case "FOLDER_CREATED": {
+      if (direction === "undo") {
+        emit("FOLDER_DELETED", {
+          folder: entry.payload.node,
+          deletedNodeIds: [entry.payload.node.id],
+        });
+      } else {
+        emit("FOLDER_CREATED", {
+          folder: entry.payload.node,
+        });
+      }
+      return;
+    }
+    case "FOLDER_DELETED": {
+      const folderNode = entry.payload.nodes.find(
+        (node): node is FolderNode => node.kind === "folder" && node.parentId !== null,
+      );
+
+      if (!folderNode) {
+        return;
+      }
+
+      if (direction === "undo") {
+        emit("FOLDER_CREATED", {
+          folder: folderNode,
+        });
+      } else {
+        emit("FOLDER_DELETED", {
+          folder: folderNode,
+          deletedNodeIds: entry.payload.nodes.map((node) => node.id),
+        });
+      }
+      return;
+    }
+    case "NODE_RENAMED": {
+      if (entry.payload.nodeKind === "file") {
+        emit("FILE_RENAMED", {
+          file: {
+            id: entry.payload.nodeId,
+            kind: "file",
+            name: direction === "undo" ? entry.payload.previousName : entry.payload.nextName,
+          } as FileNode,
+          previousName:
+            direction === "undo" ? entry.payload.nextName : entry.payload.previousName,
+          currentName:
+            direction === "undo" ? entry.payload.previousName : entry.payload.nextName,
+        });
+      }
+      return;
+    }
+    case "NODE_MOVED": {
+      if (entry.payload.nodeKind === "file") {
+        emit("FILE_MOVED", {
+          file: {
+            id: entry.payload.nodeId,
+            kind: "file",
+            parentId:
+              direction === "undo"
+                ? entry.payload.previousParentId
+                : entry.payload.nextParentId,
+          } as FileNode,
+          previousParentId:
+            direction === "undo"
+              ? entry.payload.nextParentId
+              : entry.payload.previousParentId,
+          currentParentId:
+            direction === "undo"
+              ? entry.payload.previousParentId
+              : entry.payload.nextParentId,
+        });
+      } else {
+        emit("FOLDER_MOVED", {
+          folder: {
+            id: entry.payload.nodeId,
+            kind: "folder",
+            parentId:
+              direction === "undo"
+                ? entry.payload.previousParentId
+                : entry.payload.nextParentId,
+          } as FolderNode,
+          previousParentId:
+            direction === "undo"
+              ? entry.payload.nextParentId
+              : entry.payload.previousParentId,
+          currentParentId:
+            direction === "undo"
+              ? entry.payload.previousParentId
+              : entry.payload.nextParentId,
+        });
+      }
+      return;
+    }
+  }
+}
+
 export async function undo(
   sessionId: string,
   database: IdbVfsDatabase = db,
@@ -192,6 +356,8 @@ export async function undo(
         sessionId,
         entryIndex > 0 ? (entries[entryIndex - 1]?.id ?? null) : null,
       );
+
+      emitHistoryMutation(entry, "undo");
 
       return entry;
     },
@@ -228,6 +394,8 @@ export async function redo(
 
       await applyHistoryEntry(database, nextEntry, "redo");
       await updateSessionHistoryPointer(database, sessionId, nextEntry.id);
+
+      emitHistoryMutation(nextEntry, "redo");
 
       return nextEntry;
     },
@@ -273,6 +441,12 @@ export async function restoreVersion(
           previousVersionHash: fileNode.currentVersionHash,
           restoredVersionHash: versionHash,
         },
+      });
+
+      emit("FILE_UPDATED", {
+        file: updatedNode,
+        previousVersionHash: fileNode.currentVersionHash,
+        currentVersionHash: updatedNode.currentVersionHash,
       });
 
       return updatedNode;
