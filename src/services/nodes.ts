@@ -181,7 +181,12 @@ export async function createFolder(
 
   const { rootNode } = await createSession(sessionId, database);
 
-  const folderNode = await database.transaction("rw", database.nodes, async () => {
+  const folderNode = await database.transaction(
+    "rw",
+    database.nodes,
+    database.history,
+    database.sessionMeta,
+    async () => {
     const parentFolder = await resolveFolderPath(
       database,
       rootNode.sessionId,
@@ -223,7 +228,8 @@ export async function createFolder(
     });
 
     return folderNode;
-  });
+    },
+  );
 
   emit("FOLDER_CREATED", {
     folder: folderNode,
@@ -257,7 +263,12 @@ export async function rename(
 ): Promise<NodeRecord> {
   const normalizedName = normalizeNodeName(nextName);
 
-  const result = await database.transaction("rw", database.nodes, async () => {
+  const result = await database.transaction(
+    "rw",
+    database.nodes,
+    database.history,
+    database.sessionMeta,
+    async () => {
     const node = await getNode(database, nodeId);
 
     if (node.parentId === null) {
@@ -298,7 +309,8 @@ export async function rename(
       previousName: node.name,
       changed: true,
     };
-  });
+    },
+  );
 
   if (result.changed && result.node.kind === "file") {
     emit("FILE_RENAMED", {
@@ -335,7 +347,12 @@ export async function move(
   targetFolderId: string,
   database: IdbVfsDatabase = db,
 ): Promise<NodeRecord> {
-  const result = await database.transaction("rw", database.nodes, async () => {
+  const result = await database.transaction(
+    "rw",
+    database.nodes,
+    database.history,
+    database.sessionMeta,
+    async () => {
     const node = await getNode(database, nodeId);
     const targetFolder = await getFolderNode(database, targetFolderId);
 
@@ -387,7 +404,8 @@ export async function move(
       previousParentId: node.parentId,
       changed: true,
     };
-  });
+    },
+  );
 
   if (result.changed) {
     if (result.node.kind === "file") {
@@ -435,7 +453,12 @@ export async function deleteFolder(
   folderId: string,
   database: IdbVfsDatabase = db,
 ): Promise<DeleteFolderResult> {
-  const result = await database.transaction("rw", database.nodes, async () => {
+  const result = await database.transaction(
+    "rw",
+    database.nodes,
+    database.history,
+    database.sessionMeta,
+    async () => {
     const folderNode = await getFolderNode(database, folderId);
 
     if (folderNode.parentId === null) {
@@ -466,7 +489,8 @@ export async function deleteFolder(
       folder: folderNode,
       deletedNodeIds: nodeIds,
     };
-  });
+    },
+  );
 
   emit("FOLDER_DELETED", {
     folder: result.folder,

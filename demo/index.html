@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>idb-vfs Demo</title>
+    <style>
+      :root {
+        --bg: #f4efe7;
+        --panel: rgba(255, 251, 245, 0.9);
+        --panel-strong: #fff9f0;
+        --ink: #1f1b18;
+        --muted: #72675d;
+        --line: rgba(72, 56, 41, 0.16);
+        --accent: #0d7a62;
+        --accent-strong: #095846;
+        --warn: #c84b31;
+        --shadow: 0 22px 60px rgba(53, 38, 24, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(13, 122, 98, 0.22), transparent 28%),
+          radial-gradient(circle at top right, rgba(200, 75, 49, 0.2), transparent 24%),
+          linear-gradient(180deg, #f9f5ef 0%, var(--bg) 52%, #efe5d7 100%);
+      }
+
+      .shell {
+        width: min(1400px, calc(100vw - 32px));
+        margin: 24px auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(12px);
+      }
+
+      .hero {
+        padding: 24px;
+      }
+
+      .hero h1 {
+        margin: 0 0 8px;
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 760px;
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .panel h2 {
+        margin: 0 0 12px;
+        font-size: 1.05rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .forms {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel-strong);
+      }
+
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 0.95rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      input,
+      textarea,
+      select,
+      button {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        font: inherit;
+      }
+
+      input,
+      textarea,
+      select {
+        padding: 10px 12px;
+        background: #fff;
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+
+      button {
+        padding: 11px 14px;
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+        border: none;
+        transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      }
+
+      button:hover {
+        background: var(--accent-strong);
+        transform: translateY(-1px);
+      }
+
+      button.secondary {
+        background: #eadbc8;
+        color: var(--ink);
+      }
+
+      button.secondary:hover {
+        background: #dcc5aa;
+      }
+
+      button.warn {
+        background: var(--warn);
+      }
+
+      .inline {
+        display: flex;
+        gap: 10px;
+      }
+
+      .inline > * {
+        flex: 1;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .tree,
+      .history,
+      .versions {
+        display: grid;
+        gap: 8px;
+        max-height: 420px;
+        overflow: auto;
+      }
+
+      .tree-item,
+      .history-item,
+      .version-item {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .tree-item button,
+      .history-item button,
+      .version-item button {
+        width: auto;
+      }
+
+      .tree-item {
+        display: grid;
+        gap: 6px;
+      }
+
+      .tree-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .indent {
+        display: inline-block;
+        width: 18px;
+        flex: 0 0 18px;
+      }
+
+      .tag {
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: rgba(13, 122, 98, 0.12);
+        color: var(--accent-strong);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .tag.file {
+        background: rgba(200, 75, 49, 0.12);
+        color: #8d2f1b;
+      }
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: "Consolas", "SFMono-Regular", monospace;
+        font-size: 0.92rem;
+      }
+
+      .status {
+        min-height: 24px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .status.error {
+        color: var(--warn);
+      }
+
+      .empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      @media (max-width: 1080px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .forms {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <h1>idb-vfs Demo Lab</h1>
+        <p>
+          Manual test surface for the versioned IndexedDB filesystem. Create files and folders, move
+          nodes around the tree, undo and redo mutations, and restore older file versions from the
+          stored history.
+        </p>
+        <div class="meta">
+          <div class="pill">Browser only</div>
+          <div class="pill">Vanilla JS</div>
+          <div class="pill">Session-scoped</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Session</h2>
+        <div class="inline">
+          <div>
+            <label for="sessionId">Session Id</label>
+            <input id="sessionId" value="demo-session" />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="startSession">Start Session</button>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="pill">Root Node: <span id="rootNodeId">-</span></div>
+          <div class="pill">Selected File: <span id="selectedFileLabel">none</span></div>
+        </div>
+        <p id="status" class="status"></p>
+      </section>
+
+      <section class="workspace">
+        <div class="stack">
+          <section class="panel">
+            <h2>Controls</h2>
+            <div class="forms">
+              <form id="createFolderForm" class="card">
+                <h3>Create Folder</h3>
+                <label for="folderPath">Folder Path</label>
+                <input id="folderPath" placeholder="/docs" />
+                <button type="submit">Create Folder</button>
+              </form>
+
+              <form id="createFileForm" class="card">
+                <h3>Create File</h3>
+                <label for="createFilePath">File Path</label>
+                <input id="createFilePath" placeholder="/docs/hello.txt" />
+                <label for="createFileContent">Content</label>
+                <textarea id="createFileContent" placeholder="Hello world"></textarea>
+                <button type="submit">Create File</button>
+              </form>
+
+              <form id="updateFileForm" class="card">
+                <h3>Update File</h3>
+                <label for="updateFilePath">File Path</label>
+                <input id="updateFilePath" placeholder="/docs/hello.txt" />
+                <label for="updateFileContent">New Content</label>
+                <textarea id="updateFileContent" placeholder="Updated content"></textarea>
+                <button type="submit">Update File</button>
+              </form>
+
+              <form id="deleteFileForm" class="card">
+                <h3>Delete File</h3>
+                <label for="deleteFilePath">File Path</label>
+                <input id="deleteFilePath" placeholder="/docs/hello.txt" />
+                <button type="submit" class="warn">Delete File</button>
+              </form>
+
+              <form id="moveForm" class="card">
+                <h3>Move Node</h3>
+                <label for="moveSourcePath">Source Path</label>
+                <input id="moveSourcePath" placeholder="/docs/hello.txt" />
+                <label for="moveTargetPath">Target Folder Path</label>
+                <input id="moveTargetPath" placeholder="/archive" />
+                <button type="submit">Move</button>
+              </form>
+
+              <form id="readVersionForm" class="card">
+                <h3>Read Version</h3>
+                <label for="versionFilePath">File Path</label>
+                <input id="versionFilePath" placeholder="/docs/hello.txt" />
+                <label for="versionHash">Version Hash</label>
+                <input id="versionHash" placeholder="SHA-256 hash" />
+                <button type="submit" class="secondary">Read Version</button>
+              </form>
+            </div>
+            <div class="inline" style="margin-top: 12px">
+              <button id="undoButton" class="secondary" type="button">Undo</button>
+              <button id="redoButton" class="secondary" type="button">Redo</button>
+              <button id="refreshButton" class="secondary" type="button">Refresh Views</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Current Tree</h2>
+            <div id="tree" class="tree"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <h2>History Log</h2>
+            <div id="history" class="history"></div>
+          </section>
+
+          <section class="panel">
+            <h2>File Versions</h2>
+            <div id="versions" class="versions"></div>
+          </section>
+
+          <section class="panel">
+            <h2>File Content</h2>
+            <pre id="contentView" class="empty">Select a file to inspect its content.</pre>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "dexie": "../node_modules/dexie/dist/modern/dexie.mjs"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import { createFS } from "../dist/index.mjs";
+
+      const elements = {
+        sessionId: document.querySelector("#sessionId"),
+        startSession: document.querySelector("#startSession"),
+        rootNodeId: document.querySelector("#rootNodeId"),
+        selectedFileLabel: document.querySelector("#selectedFileLabel"),
+        status: document.querySelector("#status"),
+        tree: document.querySelector("#tree"),
+        history: document.querySelector("#history"),
+        versions: document.querySelector("#versions"),
+        contentView: document.querySelector("#contentView"),
+        createFolderForm: document.querySelector("#createFolderForm"),
+        createFileForm: document.querySelector("#createFileForm"),
+        updateFileForm: document.querySelector("#updateFileForm"),
+        deleteFileForm: document.querySelector("#deleteFileForm"),
+        moveForm: document.querySelector("#moveForm"),
+        readVersionForm: document.querySelector("#readVersionForm"),
+        undoButton: document.querySelector("#undoButton"),
+        redoButton: document.querySelector("#redoButton"),
+        refreshButton: document.querySelector("#refreshButton"),
+      };
+
+      const state = {
+        fs: null,
+        selectedFileId: null,
+        selectedFilePath: "",
+        unsubscribers: [],
+      };
+
+      function setStatus(message, isError = false) {
+        elements.status.textContent = message;
+        elements.status.classList.toggle("error", isError);
+      }
+
+      function clearSubscriptions() {
+        for (const unsubscribe of state.unsubscribers) {
+          unsubscribe();
+        }
+        state.unsubscribers = [];
+      }
+
+      function normalizeInputPath(path) {
+        const trimmed = path.trim();
+        if (!trimmed) {
+          return trimmed;
+        }
+        return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+      }
+
+      async function resolveNode(path) {
+        if (!state.fs) {
+          throw new Error("Start a session first.");
+        }
+
+        return state.fs.resolvePath(normalizeInputPath(path));
+      }
+
+      async function resolveFile(path) {
+        const node = await resolveNode(path);
+        if (node.kind !== "file") {
+          throw new Error(`Path "${path}" is not a file.`);
+        }
+        return node;
+      }
+
+      async function buildTree(nodeId, depth = 0, currentPath = "") {
+        const children = await state.fs.listChildren(nodeId);
+        const items = [];
+
+        for (const child of children) {
+          const childPath = currentPath ? `${currentPath}/${child.name}` : `/${child.name}`;
+          items.push({ child, depth, path: childPath });
+          if (child.kind === "folder") {
+            items.push(...(await buildTree(child.id, depth + 1, childPath)));
+          }
+        }
+
+        return items;
+      }
+
+      async function renderTree() {
+        if (!state.fs) {
+          elements.tree.innerHTML = `<p class="empty">Start a session to load the filesystem tree.</p>`;
+          return;
+        }
+
+        const items = await buildTree(state.fs.rootNodeId);
+
+        if (items.length === 0) {
+          elements.tree.innerHTML = `<p class="empty">The tree is empty except for the root folder.</p>`;
+          return;
+        }
+
+        elements.tree.innerHTML = "";
+
+        for (const { child, depth, path } of items) {
+          const item = document.createElement("div");
+          item.className = "tree-item";
+
+          const row = document.createElement("div");
+          row.className = "tree-row";
+
+          const indent = document.createElement("span");
+          indent.className = "indent";
+          indent.style.marginLeft = `${depth * 18}px`;
+
+          const tag = document.createElement("span");
+          tag.className = `tag ${child.kind === "file" ? "file" : ""}`;
+          tag.textContent = child.kind;
+
+          const label = document.createElement("strong");
+          label.textContent = child.name;
+
+          const pathText = document.createElement("span");
+          pathText.style.color = "var(--muted)";
+          pathText.textContent = path;
+
+          row.append(indent, tag, label, pathText);
+          item.append(row);
+
+          if (child.kind === "file") {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "secondary";
+            button.textContent = "Inspect";
+            button.addEventListener("click", async () => {
+              state.selectedFileId = child.id;
+              state.selectedFilePath = path;
+              await renderSelectedFile();
+            });
+            item.append(button);
+          }
+
+          elements.tree.append(item);
+        }
+      }
+
+      async function renderHistory() {
+        if (!state.fs) {
+          elements.history.innerHTML = `<p class="empty">History will appear after the session starts.</p>`;
+          return;
+        }
+
+        const entries = await state.fs.getHistory();
+
+        if (entries.length === 0) {
+          elements.history.innerHTML = `<p class="empty">No history entries yet.</p>`;
+          return;
+        }
+
+        elements.history.innerHTML = "";
+
+        for (const entry of [...entries].reverse()) {
+          const item = document.createElement("div");
+          item.className = "history-item";
+          item.innerHTML = `
+            <strong>${entry.type}</strong>
+            <div style="color: var(--muted); font-size: 0.88rem;">#${entry.id ?? "-"} · ${new Date(entry.timestamp).toLocaleTimeString()}</div>
+            <pre>${JSON.stringify(entry.payload, null, 2)}</pre>
+          `;
+          elements.history.append(item);
+        }
+      }
+
+      async function renderSelectedFile(versionHash) {
+        if (!state.fs || !state.selectedFileId) {
+          elements.selectedFileLabel.textContent = "none";
+          elements.versions.innerHTML = `<p class="empty">Select a file from the tree to see its versions.</p>`;
+          elements.contentView.textContent = "Select a file to inspect its content.";
+          elements.contentView.className = "empty";
+          return;
+        }
+
+        elements.selectedFileLabel.textContent = state.selectedFilePath || state.selectedFileId;
+
+        const versions = await state.fs.listFileVersions(state.selectedFileId);
+        elements.versions.innerHTML = "";
+
+        if (versions.length === 0) {
+          elements.versions.innerHTML = `<p class="empty">No versions found for this file.</p>`;
+        } else {
+          for (const version of versions) {
+            const item = document.createElement("div");
+            item.className = "version-item";
+
+            const meta = document.createElement("div");
+            meta.innerHTML = `
+              <strong>${version.hash.slice(0, 16)}...</strong>
+              <div style="color: var(--muted); font-size: 0.88rem;">${new Date(version.createdAt).toLocaleString()}</div>
+            `;
+
+            const row = document.createElement("div");
+            row.className = "inline";
+
+            const readButton = document.createElement("button");
+            readButton.type = "button";
+            readButton.className = "secondary";
+            readButton.textContent = "Read";
+            readButton.addEventListener("click", async () => {
+              document.querySelector("#versionHash").value = version.hash;
+              await renderSelectedFile(version.hash);
+            });
+
+            const restoreButton = document.createElement("button");
+            restoreButton.type = "button";
+            restoreButton.textContent = "Restore";
+            restoreButton.addEventListener("click", async () => {
+              await state.fs.restoreVersion(state.selectedFileId, version.hash);
+              await refreshAll(`Restored version ${version.hash.slice(0, 12)}...`);
+            });
+
+            row.append(readButton, restoreButton);
+            item.append(meta, row);
+            elements.versions.append(item);
+          }
+        }
+
+        const content = await state.fs.readFile(state.selectedFileId, versionHash);
+        elements.contentView.textContent = content;
+        elements.contentView.className = "";
+      }
+
+      async function refreshAll(message = "") {
+        await renderTree();
+        await renderHistory();
+        await renderSelectedFile();
+        if (message) {
+          setStatus(message, false);
+        }
+      }
+
+      async function startSession() {
+        clearSubscriptions();
+        state.selectedFileId = null;
+        state.selectedFilePath = "";
+        state.fs = await createFS({ sessionId: elements.sessionId.value.trim() });
+        elements.rootNodeId.textContent = state.fs.rootNodeId;
+
+        const refreshFromEvent = async (event) => {
+          await refreshAll(`Event: ${event.type}`);
+        };
+
+        for (const eventType of [
+          "FILE_CREATED",
+          "FILE_UPDATED",
+          "FILE_DELETED",
+          "FILE_RENAMED",
+          "FILE_MOVED",
+          "FOLDER_CREATED",
+          "FOLDER_DELETED",
+          "FOLDER_MOVED",
+        ]) {
+          state.unsubscribers.push(state.fs.on(eventType, refreshFromEvent));
+        }
+
+        await refreshAll(`Session "${state.fs.sessionId}" ready.`);
+      }
+
+      async function submitHandler(run) {
+        try {
+          await run();
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : String(error), true);
+        }
+      }
+
+      elements.startSession.addEventListener("click", () => {
+        submitHandler(startSession);
+      });
+
+      elements.createFolderForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = document.querySelector("#folderPath").value.trim();
+          const normalizedPath = normalizeInputPath(path);
+          await state.fs.createFolder(normalizedPath);
+          await refreshAll(`Created folder ${normalizedPath}`);
+        });
+      });
+
+      elements.createFileForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#createFilePath").value);
+          const content = document.querySelector("#createFileContent").value;
+          const file = await state.fs.createFile(path, content);
+          state.selectedFileId = file.id;
+          state.selectedFilePath = path;
+          await refreshAll(`Created file ${path}`);
+        });
+      });
+
+      elements.updateFileForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#updateFilePath").value);
+          const content = document.querySelector("#updateFileContent").value;
+          const file = await resolveFile(path);
+          state.selectedFileId = file.id;
+          state.selectedFilePath = path;
+          await state.fs.updateFile(file.id, content);
+          await refreshAll(`Updated file ${path}`);
+        });
+      });
+
+      elements.deleteFileForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#deleteFilePath").value);
+          const file = await resolveFile(path);
+          await state.fs.deleteFile(file.id);
+          if (state.selectedFileId === file.id) {
+            state.selectedFileId = null;
+            state.selectedFilePath = "";
+          }
+          await refreshAll(`Deleted file ${path}`);
+        });
+      });
+
+      elements.moveForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const sourcePath = normalizeInputPath(document.querySelector("#moveSourcePath").value);
+          const targetPath = normalizeInputPath(document.querySelector("#moveTargetPath").value);
+          const sourceNode = await resolveNode(sourcePath);
+          const targetNode = await resolveNode(targetPath);
+          if (targetNode.kind !== "folder") {
+            throw new Error(`Target path "${targetPath}" is not a folder.`);
+          }
+          await state.fs.move(sourceNode.id, targetNode.id);
+          if (state.selectedFileId === sourceNode.id && sourceNode.kind === "file") {
+            state.selectedFilePath = `${targetPath}/${sourceNode.name}`.replace("//", "/");
+          }
+          await refreshAll(`Moved ${sourcePath} into ${targetPath}`);
+        });
+      });
+
+      elements.readVersionForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#versionFilePath").value);
+          const versionHash = document.querySelector("#versionHash").value.trim();
+          const file = await resolveFile(path);
+          state.selectedFileId = file.id;
+          state.selectedFilePath = path;
+          await renderSelectedFile(versionHash || undefined);
+          setStatus(versionHash ? `Loaded version ${versionHash.slice(0, 12)}...` : `Loaded latest content for ${path}`);
+        });
+      });
+
+      elements.undoButton.addEventListener("click", () => {
+        submitHandler(async () => {
+          await state.fs.undo();
+          await refreshAll("Undo applied.");
+        });
+      });
+
+      elements.redoButton.addEventListener("click", () => {
+        submitHandler(async () => {
+          await state.fs.redo();
+          await refreshAll("Redo applied.");
+        });
+      });
+
+      elements.refreshButton.addEventListener("click", () => {
+        submitHandler(async () => {
+          await refreshAll("Views refreshed.");
+        });
+      });
+
+      startSession().catch((error) => {
+        setStatus(error instanceof Error ? error.message : String(error), true);
+      });
+    </script>
+  </body>
+</html>

@@ -453,3 +453,5 @@ export async function restoreVersion(
     },
   );
 }
+
+export { getSessionHistoryEntries as getHistory } from "./history-store";

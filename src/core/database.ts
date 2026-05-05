@@ -7,7 +7,7 @@ import type {
 } from "../types";
 
 const DATABASE_NAME = "idb-vfs";
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 export type NodeRecord = VfsNode;
 

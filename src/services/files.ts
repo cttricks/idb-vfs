@@ -70,6 +70,8 @@ export async function createFile(
     "rw",
     database.nodes,
     database.fileVersions,
+    database.history,
+    database.sessionMeta,
     async () => {
       const parentFolder = await resolveFolderPath(
         database,
@@ -154,6 +156,39 @@ export async function readFile(
   );
 }
 
+export async function deleteFile(
+  fileId: string,
+  database: IdbVfsDatabase = db,
+): Promise<FileNode> {
+  const fileNode = await database.transaction(
+    "rw",
+    database.nodes,
+    database.history,
+    database.sessionMeta,
+    async () => {
+      const node = await getFileNode(database, fileId);
+
+      await database.nodes.delete(node.id);
+      await recordHistoryEntry(database, {
+        sessionId: node.sessionId,
+        timestamp: Date.now(),
+        type: "FILE_DELETED",
+        payload: {
+          node,
+        },
+      });
+
+      return node;
+    },
+  );
+
+  emit("FILE_DELETED", {
+    file: fileNode,
+  });
+
+  return fileNode;
+}
+
 export async function updateFile(
   fileId: string,
   content: string,
@@ -163,6 +198,8 @@ export async function updateFile(
     "rw",
     database.nodes,
     database.fileVersions,
+    database.history,
+    database.sessionMeta,
     async () => {
       const fileNode = await getFileNode(database, fileId);
       const timestamp = Date.now();
@@ -232,6 +269,27 @@ export async function getFileVersion(
       }
 
       return version;
+    },
+  );
+}
+
+export async function listFileVersions(
+  fileId: string,
+  database: IdbVfsDatabase = db,
+): Promise<FileVersion[]> {
+  return database.transaction(
+    "r",
+    database.nodes,
+    database.fileVersions,
+    async () => {
+      await getFileNode(database, fileId);
+
+      const versions = await database.fileVersions
+        .where("fileId")
+        .equals(fileId as never)
+        .toArray();
+
+      return versions.sort((left, right) => right.createdAt - left.createdAt);
     },
   );
 }
