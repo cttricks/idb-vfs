@@ -354,11 +354,29 @@
                 <button type="submit">Update File</button>
               </form>
 
+              <form id="renameFileForm" class="card">
+                <h3>Rename File</h3>
+                <label for="renameFilePath">File Path</label>
+                <input id="renameFilePath" placeholder="/docs/hello.txt" />
+                <label for="renameFileName">New File Name</label>
+                <input id="renameFileName" placeholder="renamed.txt" />
+                <button type="submit">Rename File</button>
+              </form>
+
               <form id="deleteFileForm" class="card">
                 <h3>Delete File</h3>
                 <label for="deleteFilePath">File Path</label>
                 <input id="deleteFilePath" placeholder="/docs/hello.txt" />
                 <button type="submit" class="warn">Delete File</button>
+              </form>
+
+              <form id="renameFolderForm" class="card">
+                <h3>Rename Folder</h3>
+                <label for="renameFolderPath">Folder Path</label>
+                <input id="renameFolderPath" placeholder="/docs" />
+                <label for="renameFolderName">New Folder Name</label>
+                <input id="renameFolderName" placeholder="archive" />
+                <button type="submit">Rename Folder</button>
               </form>
 
               <form id="deleteFolderForm" class="card">
@@ -442,7 +460,9 @@
         createFolderForm: document.querySelector("#createFolderForm"),
         createFileForm: document.querySelector("#createFileForm"),
         updateFileForm: document.querySelector("#updateFileForm"),
+        renameFileForm: document.querySelector("#renameFileForm"),
         deleteFileForm: document.querySelector("#deleteFileForm"),
+        renameFolderForm: document.querySelector("#renameFolderForm"),
         deleteFolderForm: document.querySelector("#deleteFolderForm"),
         moveForm: document.querySelector("#moveForm"),
         readVersionForm: document.querySelector("#readVersionForm"),
@@ -734,6 +754,22 @@
         });
       });
 
+      elements.renameFileForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#renameFilePath").value);
+          const nextName = document.querySelector("#renameFileName").value.trim();
+          const file = await resolveFile(path);
+          await state.fs.rename(file.id, nextName);
+          if (state.selectedFileId === file.id) {
+            const segments = path.split("/");
+            segments[segments.length - 1] = nextName;
+            state.selectedFilePath = segments.join("/") || "/";
+          }
+          await refreshAll(`Renamed file ${path} to ${nextName}`);
+        });
+      });
+
       elements.deleteFileForm.addEventListener("submit", (event) => {
         event.preventDefault();
         submitHandler(async () => {
@@ -745,6 +781,26 @@
             state.selectedFilePath = "";
           }
           await refreshAll(`Deleted file ${path}`);
+        });
+      });
+
+      elements.renameFolderForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#renameFolderPath").value);
+          const nextName = document.querySelector("#renameFolderName").value.trim();
+          const folder = await resolveNode(path);
+          if (folder.kind !== "folder") {
+            throw new Error(`Path "${path}" is not a folder.`);
+          }
+          await state.fs.rename(folder.id, nextName);
+          if (state.selectedFilePath.startsWith(`${path}/`)) {
+            state.selectedFilePath = state.selectedFilePath.replace(
+              `${path}/`,
+              `${path.split("/").slice(0, -1).join("/") || ""}/${nextName}/`.replace("//", "/"),
+            );
+          }
+          await refreshAll(`Renamed folder ${path} to ${nextName}`);
         });
       });
 
