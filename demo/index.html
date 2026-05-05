@@ -361,6 +361,13 @@
                 <button type="submit" class="warn">Delete File</button>
               </form>
 
+              <form id="deleteFolderForm" class="card">
+                <h3>Delete Folder</h3>
+                <label for="deleteFolderPath">Folder Path</label>
+                <input id="deleteFolderPath" placeholder="/docs" />
+                <button type="submit" class="warn">Delete Folder Tree</button>
+              </form>
+
               <form id="moveForm" class="card">
                 <h3>Move Node</h3>
                 <label for="moveSourcePath">Source Path</label>
@@ -436,6 +443,7 @@
         createFileForm: document.querySelector("#createFileForm"),
         updateFileForm: document.querySelector("#updateFileForm"),
         deleteFileForm: document.querySelector("#deleteFileForm"),
+        deleteFolderForm: document.querySelector("#deleteFolderForm"),
         moveForm: document.querySelector("#moveForm"),
         readVersionForm: document.querySelector("#readVersionForm"),
         undoButton: document.querySelector("#undoButton"),
@@ -737,6 +745,23 @@
             state.selectedFilePath = "";
           }
           await refreshAll(`Deleted file ${path}`);
+        });
+      });
+
+      elements.deleteFolderForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        submitHandler(async () => {
+          const path = normalizeInputPath(document.querySelector("#deleteFolderPath").value);
+          const folder = await resolveNode(path);
+          if (folder.kind !== "folder") {
+            throw new Error(`Path "${path}" is not a folder.`);
+          }
+          await state.fs.deleteFolder(folder.id);
+          if (state.selectedFilePath.startsWith(`${path}/`)) {
+            state.selectedFileId = null;
+            state.selectedFilePath = "";
+          }
+          await refreshAll(`Deleted folder tree ${path}`);
         });
       });
 
