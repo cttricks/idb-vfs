@@ -5,14 +5,24 @@ export interface ParsedPath {
   parentSegments: string[];
 }
 
-export function parseAbsolutePath(path: string): ParsedPath {
+export function normalizeAbsolutePath(path: string): string {
   const normalizedPath = path.trim();
 
   if (!normalizedPath.startsWith("/")) {
     throw new Error("Path must start with '/'.");
   }
 
-  const segments = normalizedPath.split("/").filter(Boolean);
+  return normalizedPath;
+}
+
+export function getPathSegments(path: string): string[] {
+  return normalizeAbsolutePath(path).split("/").filter(Boolean);
+}
+
+export function parseAbsolutePath(path: string): ParsedPath {
+  const normalizedPath = normalizeAbsolutePath(path);
+
+  const segments = getPathSegments(normalizedPath);
 
   if (segments.length === 0) {
     throw new Error("Path must target a file name.");

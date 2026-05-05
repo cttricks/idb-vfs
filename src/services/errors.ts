@@ -53,3 +53,31 @@ export class FileVersionNotFoundError extends FileServiceError {
     this.name = "FileVersionNotFoundError";
   }
 }
+
+export class InvalidNodeNameError extends FileServiceError {
+  constructor(name: string) {
+    super(`Invalid node name "${name}".`);
+    this.name = "InvalidNodeNameError";
+  }
+}
+
+export class RootNodeMutationError extends FileServiceError {
+  constructor(operation: string) {
+    super(`Cannot ${operation} the root folder node.`);
+    this.name = "RootNodeMutationError";
+  }
+}
+
+export class SessionMismatchError extends FileServiceError {
+  constructor(nodeId: string, targetFolderId: string) {
+    super(`Node "${nodeId}" cannot be moved into folder "${targetFolderId}" from a different session.`);
+    this.name = "SessionMismatchError";
+  }
+}
+
+export class TreeCycleError extends FileServiceError {
+  constructor(nodeId: string, targetFolderId: string) {
+    super(`Moving node "${nodeId}" into folder "${targetFolderId}" would create a cycle.`);
+    this.name = "TreeCycleError";
+  }
+}
