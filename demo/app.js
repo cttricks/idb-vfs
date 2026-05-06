@@ -1,9 +1,10 @@
-import { createFS } from "../dist/index.mjs";
+import { createFS, terminateFS } from "../dist/index.mjs";
 
 const elements = {
   sessionForm: document.querySelector("#sessionForm"),
   sessionId: document.querySelector("#sessionId"),
   rootNodeId: document.querySelector("#rootNodeId"),
+  terminateSession: document.querySelector("#terminateSession"),
   selectedTargetLabel: document.querySelector("#selectedTargetLabel"),
   status: document.querySelector("#status"),
   tree: document.querySelector("#tree"),
@@ -310,6 +311,18 @@ async function startSession() {
   await refreshAll(`Session "${state.fs.sessionId}" ready.`);
 }
 
+async function terminateSession() {
+  const sessionId = elements.sessionId.value.trim();
+
+  if (!sessionId) {
+    throw new Error("Enter a session id before terminating.");
+  }
+
+  clearSubscriptions();
+  await terminateFS({ sessionId });
+  window.location.reload();
+}
+
 async function submitHandler(run) {
   try {
     await run();
@@ -321,6 +334,10 @@ async function submitHandler(run) {
 elements.sessionForm.addEventListener("submit", (event) => {
   event.preventDefault();
   submitHandler(startSession);
+});
+
+elements.terminateSession.addEventListener("click", () => {
+  submitHandler(terminateSession);
 });
 
 elements.createFolderForm.addEventListener("submit", (event) => {

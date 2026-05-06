@@ -8,6 +8,7 @@ A browser-only TypeScript library for a versioned virtual file system backed by 
 - Immutable file versions addressed by SHA-256 hash
 - Undo and redo through a session history pointer
 - Session-scoped filesystem instances
+- Standalone session teardown with `terminateFS(...)`
 - EventTarget-based mutation events
 - ESM, CJS, and type declaration output
 
@@ -20,7 +21,7 @@ npm install idb-vfs
 ## Quick Start
 
 ```ts
-import { createFS } from "idb-vfs";
+import { createFS, terminateFS } from "idb-vfs";
 
 const fs = await createFS({ sessionId: "demo-session" });
 
@@ -29,6 +30,8 @@ const file = await fs.createFile("/docs/hello.txt", "Hello world");
 
 const latest = await fs.readFile(file.id);
 console.log(latest);
+
+await terminateFS({ sessionId: "demo-session" });
 ```
 
 ## Public API
@@ -40,8 +43,10 @@ const fs = await createFS({ sessionId: "my-session" });
 Available methods:
 
 - `fs.createFile(path, content)`
+- `fs.deleteFile(fileId)`
 - `fs.readFile(fileId, versionHash?)`
 - `fs.updateFile(fileId, content)`
+- `fs.listFileVersions(fileId)`
 - `fs.createFolder(path)`
 - `fs.deleteFolder(folderId)`
 - `fs.rename(nodeId, nextName)`
@@ -51,8 +56,16 @@ Available methods:
 - `fs.undo()`
 - `fs.redo()`
 - `fs.restoreVersion(fileId, versionHash)`
+- `fs.getHistory()`
 - `fs.on(event, handler)`
 - `fs.off(event, handler)`
+
+Standalone session lifecycle:
+
+- `createFS({ sessionId })`
+- `terminateFS({ sessionId })`
+
+`terminateFS(...)` removes that session's nodes, history entries, and session metadata. It also deletes file versions that are no longer referenced by any remaining session data, and closes the underlying DB when the last session is terminated.
 
 ## Events
 

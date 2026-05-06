@@ -77,7 +77,7 @@ textarea {
 
 .session-bar {
   display: grid;
-  grid-template-columns: minmax(220px, 320px) auto 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
   align-items: end;
 }
