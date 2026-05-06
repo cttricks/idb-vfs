@@ -102,6 +102,19 @@ The package emits:
 - `dist/index.js`
 - `dist/index.d.ts`
 
+## Demo
+
+The demo in [demo/index.html](/d:/Node/idb-vfs/demo/index.html) is set up for static hosting:
+
+- it loads `dexie` from a pinned CDN import map
+- it loads a bundled [demo/app.bundle.js](/d:/Node/idb-vfs/demo/app.bundle.js) instead of `dist/`
+
+Rebuild the demo bundle with:
+
+```bash
+npm run build:demo
+```
+
 ## Notes
 
 - Runtime target: browser only

@@ -1,4 +1,4 @@
-import { createFS, terminateFS } from "../dist/index.mjs";
+import { createFS, terminateFS } from "../src/index.ts";
 
 const elements = {
   sessionForm: document.querySelector("#sessionForm"),
