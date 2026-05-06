@@ -2,10 +2,19 @@
   "name": "idb-vfs",
   "version": "1.0.0",
   "description": "A versioned virtual file system for the browser built on IndexedDB and Dexie.",
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/cttricks/idb-vfs#readme",
+  "bugs": {
+    "url": "https://github.com/cttricks/idb-vfs/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cttricks/idb-vfs.git"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "browser": "./dist/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
