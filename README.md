@@ -1,3 +1,5 @@
+![image](https://repository-images.githubusercontent.com/1224374952/dfb68c16-77df-40ab-b1ee-9c817a7ddb2c)
+
 # Virtual File System – IndexedDB (`idb-vfs`)
 
 [![npm version](https://img.shields.io/npm/v/idb-vfs.svg?style=flat-square)](https://www.npmjs.com/package/idb-vfs)
