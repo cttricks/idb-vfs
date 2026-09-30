@@ -102,21 +102,40 @@ The package emits:
 - `dist/index.js`
 - `dist/index.d.ts`
 
-## Demo
+## Interactive Playground & Demo
 
-The demo in [demo/index.html](/d:/Node/idb-vfs/demo/index.html) is set up for static hosting:
+The repository includes a modern, Vercel-inspired desktop-style file explorer playground located in `demo-site/`. It demonstrates real-time file tree management, immutable CAS version time-travel, live mutation audit streaming, and CDN consumption.
 
-- it loads `dexie` from a pinned CDN import map
-- it loads a bundled [demo/app.bundle.js](/d:/Node/idb-vfs/demo/app.bundle.js) instead of `dist/`
-
-Rebuild the demo bundle with:
+To build and serve the static playground and local CDN:
 
 ```bash
+# 1. Build the core library
+npm run build
+
+# 2. Host the library as a local CDN with CORS on port 3030
+npm run serve:lib
+
+# 3. Build and serve the playground site on port 3031
 npm run build:demo
+npm run serve:demo
 ```
+
+Open `http://localhost:3031` in your browser.
+
+## Documentation
+
+Comprehensive architectural and integration documentation is available in [`docs/`](./docs/):
+
+- [Architecture & Storage Internals](./docs/architecture.md): IndexedDB schema, CAS versioning, and undo/redo pointer mechanics.
+- [API Reference](./docs/api-reference.md): Complete method signatures, options, and error contracts.
+- [Integration Guide](./docs/integration-guide.md): Patterns for React, Next.js (App Router/SSR safety), and CDN usage.
+- [Code Style & Conventions](./docs/code-style-and-conventions.md): Codebase organization, zero breaking changes policy, and type safety guidelines.
+- [AGENTS.md](./AGENTS.md): High-level operational guidance for AI agents and maintainers.
 
 ## Notes
 
-- Runtime target: browser only
-- Storage backend: IndexedDB via Dexie
-- No server sync or multi-user collaboration
+- **Runtime target**: Browser only (requires IndexedDB and Web Cryptography `crypto.subtle`)
+- **Storage engine**: IndexedDB via Dexie
+- **Isolation**: Multi-session support with atomic teardown via `terminateFS`
+- **Zero Breaking Changes**: Actively consumed in production codebases; maintain backwards compatibility across all updates.
+

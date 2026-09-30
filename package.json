@@ -30,8 +30,11 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs && tsc --project tsconfig.json --emitDeclarationOnly --declaration --declarationMap false --outDir dist",
-    "build:demo": "node ./scripts/build-demo.mjs",
-    "dev": "tsup src/index.ts --watch"
+    "dev": "tsup src/index.ts --watch",
+    "serve:lib": "serve -l 3030 --cors dist",
+    "build:demo": "npm --prefix demo-site run build",
+    "serve:demo": "serve -l 3031 demo-site/dist",
+    "dev:demo": "npm --prefix demo-site run dev"
   },
   "keywords": [
     "idb",
@@ -46,6 +49,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "serve": "^14.2.6",
     "tsup": "^8.5.1",
     "typescript": "^6.0.3"
   }

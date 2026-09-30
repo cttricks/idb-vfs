@@ -2,3 +2,6 @@
 /.vscode/
 /node_modules/
 /dist/
+/demo-site/
+/docs/
+AGENTS.md
