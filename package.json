@@ -1,6 +1,6 @@
 {
   "name": "idb-vfs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A versioned virtual file system for the browser built on IndexedDB and Dexie.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/cttricks/idb-vfs#readme",
